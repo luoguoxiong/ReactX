@@ -21,6 +21,6 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: yarn install
       - run: npm run build
-      - run: npm --access public
+      - run: npm public --access
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
