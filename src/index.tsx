@@ -1,31 +1,44 @@
-import React, { useContext, createContext, useMemo, useEffect } from 'react';
-import { StoreType, State, UseUpdate, UseEffect } from './type';
+import React, { useContext, createContext, useMemo } from 'react';
+import { cloneObj, isFunction, isObject, isAsyncFunction } from './utils';
+import { StoreType, State, TaskFn } from './type';
 
 export class Store<S extends State, SUK extends string, SEK extends string>{
   protected store: StoreType<S, SUK, SEK>;
 
+  /** Store 状态 */
   protected state: S;
 
+  /** Store 计算中的状态 */
+  protected currenState: S;
+
+  /** 是否有正在计算中更新 */
   protected isUpdateQuene: boolean = false;
 
+  /** React 触发更新状态 */
   protected setState: React.Dispatch<React.SetStateAction<S>>;
 
-  protected updates: {
-    [key in SUK]: UseUpdate;
-  };
-
-  protected effects: {
-    [key in SEK]: UseEffect
-  };
-
   constructor(store: StoreType<S, SUK, SEK>){
+    if(!isObject(store.state)){
+      throw Error('Store state is not object');
+    }
+    const { mutations, actions } = store;
+    for (const key in mutations) {
+      if(!isFunction(mutations[key])){
+        throw Error(`Store mutations.${key} is not function`);
+      }
+    }
+    for (const key in actions) {
+      if(!(isFunction(actions[key]) || isAsyncFunction(actions[key]))){
+        throw Error(`Store actions.${key} is not function`);
+      }
+    }
     this.store = store;
     this.state = store.state;
+    this.currenState = cloneObj(store.state);
     this.init();
   }
 
-  protected update(newState: S) {
-    this.state = newState;
+  protected update() {
     // 避免重复更新
     if(!this.isUpdateQuene){
       this.isUpdateQuene = true;
@@ -33,54 +46,60 @@ export class Store<S extends State, SUK extends string, SEK extends string>{
         throw Error('please use StoreProvide Api first！');
       }
       Promise.resolve().then(() => {
-        this.setState(this.state);
-        this.store.state = this.state;
+        const newState = cloneObj(this.currenState);
+        this.state = newState;
+        this.setState(newState);
         this.isUpdateQuene = false;
+      }).catch((err) => {
+        console.log(err);
+        this.currenState = cloneObj(this.state);
       });
     }
   }
 
   protected init(){
+    const commit = this.compileMutation();
+    const dispatch = this.compileAction(commit);
     const context = {
       state: this.state,
-      updates: this.compileUpdates(),
-      effects: this.compileEffects(),
+      commit,
+      dispatch,
     };
     const Context = createContext(context);
-    const useStore = () => useContext(Context);
     this.StoreProvide = this.createProvider(Context, context);
+    const useStore = () => useContext(Context);
     this.useStore = useStore;
   }
 
-  protected compileUpdates() {
-    const { updates } = this.store;
-    const updatesDo = {} as {
-      [key in SUK]: UseUpdate;
+  protected compileMutation() {
+    const { mutations } = this.store;
+    const commits = {} as {
+      [key in SUK]: TaskFn;
     };
-    for(const key in updates){
-      updatesDo[key] = (...payload) => {
-        const update = updates[key];
-        const newState = update(this.state, ...payload);
-        this.update(newState);
+    for(const key in mutations){
+      commits[key] = (...payload) => {
+        const update = mutations[key];
+        update(this.currenState, ...payload);
+        this.update();
       };
     }
-    this.updates = updatesDo;
-    return updatesDo;
+    return commits;
   }
 
-  protected compileEffects() {
-    const { effects } = this.store;
-    const effectsDo = {} as {
-      [key in SEK]: UseEffect
+  protected compileAction(commit: {
+    [key in SUK]: TaskFn;
+  }) {
+    const { actions } = this.store;
+    const dispatchs = {} as {
+      [key in SEK]: TaskFn
     };
-    for(const key in effects){
-      effectsDo[key] = (...payload) => {
-        const effect = effects[key];
-        effect(this.updates, this.state, ...payload);
+    for(const key in actions){
+      dispatchs[key] = (...payload) => {
+        const effect = actions[key];
+        effect(commit, ...payload);
       };
     }
-    this.effects = effectsDo;
-    return effectsDo;
+    return dispatchs;
   }
 
   protected createProvider(Context, context){
@@ -88,9 +107,7 @@ export class Store<S extends State, SUK extends string, SEK extends string>{
 
       const [state, setState] = React.useState<S>(() => this.state);
 
-      useEffect(() => {
-        this.setState = setState;
-      }, [setState]);
+      this.setState = setState;
 
       const ctx = useMemo(() => ({
         ...context,
@@ -114,11 +131,11 @@ export class Store<S extends State, SUK extends string, SEK extends string>{
 
   public useStore: () => {
     state: S;
-    updates: {
-      [key in SUK]?: UseUpdate;
+    commit: {
+      [key in SUK]?: TaskFn;
     } ;
-    effects: {
-      [key in SEK]?: UseEffect
+    dispatch: {
+      [key in SEK]?: TaskFn
     };
   };
 
