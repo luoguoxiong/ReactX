@@ -2,10 +2,10 @@
 一个轻量、简单的React 状态管理库
 
 ## Example
-```ts
+```tsx
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Store } from './store';
+import { Store } from '@rctool/store';
 
 interface CounterIn{
   counter: number;
