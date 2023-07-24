@@ -7,17 +7,38 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "father-build",
-    "test": "father-build -w"
+    "test": "jest  --env=jsdom"
   },
   "peerDependencies": {
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
   },
   "devDependencies": {
+    "@hulljs/eslint-config-hull-app": "^0.1.0",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/jest-dom": "^5.11.5",
+    "@testing-library/react": "12.1.2",
+    "@types/jest": "^23.3.14",
     "@types/react": "^18.0.9",
     "@types/react-dom": "^18.0.4",
-    "@hulljs/eslint-config-hull-app": "^0.1.0",
-    "father-build": "^1.22.1"
+    "react": "17.0.0",
+    "react-dom": "17.0.0",
+    "father-build": "^1.22.1",
+    "jest": "^23.6.0",
+    "jest-config": "^23.6.0",
+    "ts-jest": "^23.10.2"
+  },
+  "jest": {
+    "transform": {
+      ".(ts|tsx)": "ts-jest"
+    },
+    "testEnvironment": "node",
+    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ]
   },
   "repository": {
     "type": "git",

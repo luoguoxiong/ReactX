@@ -69,6 +69,7 @@ export class Store<S extends State, SUK extends string, SEK extends string>{
     this.StoreProvide = this.createProvider(Context, context);
     const useStore = () => useContext(Context);
     this.useStore = useStore;
+    this.getState = this.getState.bind(this);
   }
 
   protected compileMutation() {
