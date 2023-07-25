@@ -1,9 +1,9 @@
 import React, { useContext, createContext, useMemo } from 'react';
 import { cloneObj, isFunction, isObject, isAsyncFunction } from './utils';
-import { StoreType, State, TaskFn } from './type';
+import { StoreType, State, TaskRecord } from './type';
 
-export class Store<S extends State, SUK extends string, SEK extends string>{
-  protected store: StoreType<S, SUK, SEK>;
+export class Store<S extends State, StoreMutationKeys extends string, StoreActionKeys extends string>{
+  protected store: StoreType<S, StoreMutationKeys, StoreActionKeys>;
 
   /** Store 状态 */
   protected state: S;
@@ -11,13 +11,16 @@ export class Store<S extends State, SUK extends string, SEK extends string>{
   /** Store 计算中的状态 */
   protected currenState: S;
 
-  /** 是否有正在计算中更新 */
+  /** 是否有正在计算中更新任务 */
   protected isUpdateQuene: boolean = false;
 
   /** React 触发更新状态 */
   protected setState: React.Dispatch<React.SetStateAction<S>>;
-
-  constructor(store: StoreType<S, SUK, SEK>){
+  /**
+   * Create a Store.
+   * @param {StoreType} store - The store init.
+   */
+  constructor(store: StoreType<S, StoreMutationKeys, StoreActionKeys>){
     if(!isObject(store.state)){
       throw Error('Store state is not object');
     }
@@ -74,9 +77,7 @@ export class Store<S extends State, SUK extends string, SEK extends string>{
 
   protected compileMutation() {
     const { mutations } = this.store;
-    const commits = {} as {
-      [key in SUK]: TaskFn;
-    };
+    const commits = {} as TaskRecord<StoreMutationKeys>;
     for(const key in mutations){
       commits[key] = (...payload) => {
         const update = mutations[key];
@@ -87,13 +88,9 @@ export class Store<S extends State, SUK extends string, SEK extends string>{
     return commits;
   }
 
-  protected compileAction(commit: {
-    [key in SUK]: TaskFn;
-  }) {
+  protected compileAction(commit: TaskRecord<StoreMutationKeys>) {
     const { actions } = this.store;
-    const dispatchs = {} as {
-      [key in SEK]: TaskFn
-    };
+    const dispatchs = {} as TaskRecord<StoreActionKeys>;
     for(const key in actions){
       dispatchs[key] = (...payload) => {
         const effect = actions[key];
@@ -132,12 +129,8 @@ export class Store<S extends State, SUK extends string, SEK extends string>{
 
   public useStore: () => {
     state: S;
-    commit: {
-      [key in SUK]?: TaskFn;
-    } ;
-    dispatch: {
-      [key in SEK]?: TaskFn
-    };
+    commit: TaskRecord<StoreMutationKeys> ;
+    dispatch: TaskRecord<StoreActionKeys>;
   };
 
   public StoreProvide: React.FC<{children: React.ReactNode}>;
