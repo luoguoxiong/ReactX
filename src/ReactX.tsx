@@ -1,15 +1,6 @@
 import React, { useContext, createContext, useMemo } from 'react';
-import { ModelOptions, ModelOptionsRe } from './type';
+import { ModelOptionsRe } from './type';
 import { cloneObj, isFunction, isObject, isAsyncFunction } from './utils';
-export function createModel<
-  State extends object,
-  Mutations extends object,
-  Actions extends object,
->(
-  modelConfig: ModelOptions<State, Mutations, Actions>): ModelOptionsRe<State, Mutations, Actions>
-{
-  return modelConfig as any;
-}
 
 export class ReactX<T extends ModelOptionsRe<object, object, object>>{
 
@@ -24,10 +15,13 @@ export class ReactX<T extends ModelOptionsRe<object, object, object>>{
 
   /** React 触发更新状态 */
   protected setState: React.Dispatch<React.SetStateAction< T['state']>>;
+
   public store: T;
+
   constructor(modal: T){
     this.store = modal;
     this.state = modal.state;
+    this.currenState = cloneObj(modal.state);
     if(!isObject(modal.state)){
       throw Error('Store state is not object');
     }
@@ -42,7 +36,6 @@ export class ReactX<T extends ModelOptionsRe<object, object, object>>{
         throw Error(`Store actions.${key} is not function`);
       }
     }
-    this.currenState = cloneObj(modal.state);
     this.init();
   }
   protected update() {
@@ -58,7 +51,7 @@ export class ReactX<T extends ModelOptionsRe<object, object, object>>{
         this.setState(newState);
         this.isUpdateQuene = false;
       }).catch((err) => {
-        console.log(err);
+        console.error('update:error', err);
         this.currenState = cloneObj(this.state);
       });
     }
@@ -72,11 +65,14 @@ export class ReactX<T extends ModelOptionsRe<object, object, object>>{
       commit,
       dispatch,
     };
+    this.commit = commit;
+    this.dispatch = dispatch;
     const Context = createContext(context);
     this.StoreProvide = this.createProvider(Context, context);
     const useStore = () => useContext(Context);
     this.useStore = useStore;
     this.getState = this.getState.bind(this);
+    this.withReactX = this.withReactX.bind(this);
   }
 
   protected compileMutation() {
@@ -89,7 +85,7 @@ export class ReactX<T extends ModelOptionsRe<object, object, object>>{
         this.update();
       };
     }
-    return commits as T['commit'];
+    return commits;
   }
 
   protected compileAction(commit: T['commit']) {
@@ -130,6 +126,10 @@ export class ReactX<T extends ModelOptionsRe<object, object, object>>{
     return this.state;
   }
 
+  public commit: T['commit'];
+
+  public dispatch: T['dispatch'];
+
   public useStore: () => {
     state: T['state'];
     commit: T['commit'];
@@ -137,4 +137,21 @@ export class ReactX<T extends ModelOptionsRe<object, object, object>>{
   };
 
   public StoreProvide: React.FC<{children: React.ReactNode}>;
+
+  public withReactX<OwnProps>(SubComponent: React.ComponentType<OwnProps & {
+    state: T['state'];
+    commit: T['commit'];
+    dispatch: T['dispatch'];
+  }
+  >,) {
+    function withGlobalModelContainer(props: OwnProps) {
+      const model = this.useStore();
+      return (
+        <SubComponent
+          {...props}
+          {...model}/>
+      );
+    }
+    return withGlobalModelContainer.bind(this);
+  }
 }

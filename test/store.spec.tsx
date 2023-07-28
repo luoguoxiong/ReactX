@@ -1,15 +1,8 @@
 import React from 'react';
 import * as rtl from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import { Store } from '../src/index';
+import { createReactX } from '../src/index';
 
-interface CounterIn{
-  counter: number;
-}
-
-type StoreMutationKeys = 'increment' | 'decrement'
-
-type StoreActionKeys = 'asyncIncrement' | 'asyncDecrement'
 
 const delay = (time) => new Promise((res) => {
   setTimeout(() => {
@@ -17,24 +10,24 @@ const delay = (time) => new Promise((res) => {
   }, time);
 });
 
-const { StoreProvide, useStore, getState } = new Store<CounterIn, StoreMutationKeys, StoreActionKeys>({
+const { StoreProvide, useStore, getState } = createReactX({
   state: {
     counter: 0,
   },
   mutations: {
-    increment: ( state, num) => {
+    increment: ( state, num: number) => {
       state.counter += 1;
     },
-    decrement: ( state, num) => {
+    decrement: ( state, num: number) => {
       state.counter -= 1;
     },
   },
   actions: {
-    async asyncIncrement(commit, num) {
+    async asyncIncrement(commit, state, num: number) {
       await delay(1000);
       commit.increment(num);
     },
-    async asyncDecrement(commit, num) {
+    async asyncDecrement(commit, state, num: number) {
       await delay(1000);
       commit.decrement(num);
     },
