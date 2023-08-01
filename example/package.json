@@ -15,7 +15,7 @@
     "@hulljs/cli": "0.8.0"
   },
   "dependencies": {
-    "@rctool/reactx": "^1.1.0",
+    "@rctool/reactx": "^1.1.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   }

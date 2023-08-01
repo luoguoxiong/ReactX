@@ -57,7 +57,7 @@ const Counter = () => {
   );
 };
 
-const Counter2 = withReactX(({ commit, state, dispatch, name }) => (
+const Counter2 = withReactX<{name: string}>(({ commit, state, dispatch, name }) => (
   <>
     <button onClick={() => {
       commit.increment(11);
