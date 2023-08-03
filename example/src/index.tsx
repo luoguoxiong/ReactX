@@ -57,12 +57,12 @@ const Counter = () => {
   );
 };
 
-const Counter2 = withReactX<{name: string}>(({ commit, state, dispatch, name }) => (
+const Counter2 = withReactX(({ commit, state, dispatch }) => (
   <>
     <button onClick={() => {
       commit.increment(11);
     }}>
-       increment{name}
+       increment
     </button>
     <button onClick={() => {
       commit.decrement(1);
@@ -88,9 +88,7 @@ ReactDOM.render(
   <React.StrictMode>
     <StoreProvide>
       <Counter />
-      <Counter2
-        name="ss"
-        other="22" />
+      <Counter2/>
     </StoreProvide>
   </React.StrictMode>
   ,
